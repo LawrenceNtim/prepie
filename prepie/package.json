@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "setup:db": "bash scripts/setup-db.sh"
   },
   "dependencies": {
     "next": "^14.2.5",
