@@ -74,26 +74,38 @@ npm run dev
 
 **Mock mode (default):** no env vars needed. Boots on the Japan concert trip seed.
 
-**Database mode:** copy `.env.example` to `.env.local`, set `DATABASE_URL` to your
-Supabase pooler URI (port 6543), then:
+**Database mode:** get the transaction pooler URI from Supabase → **Prepi** → **Connect** → Transaction pooler (port **6543**). For this project the host is `aws-0-us-east-1.pooler.supabase.com` — copy the full URI from the dashboard; do not hand-edit the host.
 
 ```bash
-npm run db:push
-npm run dev
+npm run setup:db -- '<paste-full-uri-from-connect>'
 ```
 
-On first load with an empty database, prepie auto-seeds the Japan demo event.
+That writes `.env.local`, verifies the connection, runs `db:push`, updates Vercel `DATABASE_URL`, and redeploys. On first load with an empty database, prepie auto-seeds the Japan demo event.
+
+To verify an existing `.env.local` without deploying:
+
+```bash
+npm run verify:db
+```
 
 ---
 
 ## Deploy (Vercel)
 
-1. Push this repo to GitHub.
-2. Import in Vercel with **Root Directory** = `prepie`.
-3. Add `DATABASE_URL` (Supabase pooler URI) to Production environment variables.
-4. Deploy. The build runs `next build`; schema is applied via `npm run db:push` locally before first deploy (or in CI).
+Live: **https://prepie-lovat.vercel.app** (GitHub: `LawrenceNtim/prepie`)
+
+1. Vercel **Root Directory** = `prepie`; deploy from repo root.
+2. After rotating your Supabase DB password, re-run from `prepie/`:
+
+```bash
+npm run setup:db -- '<fresh-uri-from-supabase-connect>'
+```
+
+3. Schema is already on project **Prepi** (`beznhteumkduzxpqyfci`). `db:push` is idempotent.
 
 **Note:** Auth is not wired yet — all visitors share one profile. Fine for a trusted test drive; add Supabase magic-link auth before wider sharing.
+
+**Security (P1):** Tables currently have RLS disabled. Safe for a private demo using server-side Drizzle only; enable RLS + policies before exposing a Supabase anon client.
 
 ---
 
