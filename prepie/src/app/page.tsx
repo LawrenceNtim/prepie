@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { listEvents, getTasksForEvent } from "@/lib/data";
+
+// Data lives in the DB (or the process-local mock) — never prerender at
+// build time, where DATABASE_URL may be set and queried from the builder.
+export const dynamic = "force-dynamic";
 import { daysUntil } from "@/lib/timing";
 import { isComplete } from "@/lib/format";
 

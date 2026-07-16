@@ -96,6 +96,16 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   providers: many(providers),
 }));
 
+// The one() side is required for db.query.profiles.findFirst({ with:
+// { providers: true } }) — without it Drizzle cannot infer the join and
+// throws at runtime ("not enough information to infer relation").
+export const providersRelations = relations(providers, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [providers.profileId],
+    references: [profiles.id],
+  }),
+}));
+
 export const eventsRelations = relations(events, ({ one, many }) => ({
   profile: one(profiles, {
     fields: [events.profileId],
