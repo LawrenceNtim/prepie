@@ -13,7 +13,7 @@ export function suggestedSlotISO(
   eventDate: string,
   offsetDays: number | null,
 ): string {
-  const day = subDays(new Date(eventDate), offsetDays ?? 0);
+  const day = subDays(new Date(`${eventDate}T00:00:00`), offsetDays ?? 0);
   return set(day, {
     hours: 12,
     minutes: 0,

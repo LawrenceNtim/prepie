@@ -21,6 +21,16 @@ describe("suggestedSlotISO", () => {
       suggestedSlotISO("2026-07-08", 0),
     );
   });
+
+  it("lands on the event's calendar day when offset is 0", () => {
+    const d = new Date(suggestedSlotISO("2026-07-08", 0));
+    expect([d.getFullYear(), d.getMonth(), d.getDate()]).toEqual([2026, 6, 8]);
+  });
+
+  it("lands offsetDays before the event on the local calendar", () => {
+    const d = new Date(suggestedSlotISO("2026-07-08", 4));
+    expect([d.getMonth(), d.getDate()]).toEqual([6, 4]);
+  });
 });
 
 describe("datetime-local conversion", () => {
