@@ -49,12 +49,17 @@ export async function addTaskAction(eventId: string, formData: FormData) {
   const link = String(formData.get("link") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
+  // Full ISO datetime, converted from the datetime-local value client-side
+  // (the browser knows the user's zone; the server does not).
+  const scheduledAt = String(formData.get("scheduledAt") ?? "").trim();
+
   const input: CreateTaskInput = {
     eventId,
     type,
     title,
     offsetDays: offsetRaw ? Number(offsetRaw) : null,
     hardDate: hardDate || null,
+    scheduledAt: scheduledAt || null,
     providerId: providerId || null,
     link: link || null,
     notes: notes || null,

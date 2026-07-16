@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { Provider, TaskType } from "@/types";
 import { addTaskAction } from "@/app/actions";
+import { fromDatetimeLocalValue } from "@/lib/slots";
 
 interface AddTaskFormProps {
   eventId: string;
@@ -15,7 +16,8 @@ interface AddTaskFormProps {
 export function AddTaskForm({ eventId, providers }: AddTaskFormProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<TaskType>("appointment");
-  const [timing, setTiming] = useState<"offset" | "hard">("offset");
+  const [timing, setTiming] = useState<"offset" | "hard" | "booked">("offset");
+  const [bookedSlot, setBookedSlot] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   const action = addTaskAction.bind(null, eventId);
@@ -40,6 +42,7 @@ export function AddTaskForm({ eventId, providers }: AddTaskFormProps) {
         formRef.current?.reset();
         setType("appointment");
         setTiming("offset");
+        setBookedSlot("");
         setOpen(false);
       }}
       className="mt-8 space-y-4 rounded-card border bg-surface p-5"
@@ -61,7 +64,10 @@ export function AddTaskForm({ eventId, providers }: AddTaskFormProps) {
           <button
             key={t}
             type="button"
-            onClick={() => setType(t)}
+            onClick={() => {
+              setType(t);
+              if (t === "acquisition" && timing === "booked") setTiming("offset");
+            }}
             className={`rounded-full border px-3 py-1 text-[13px] transition ${
               type === t
                 ? "border-accent bg-accent-soft/40 text-accent"
@@ -86,7 +92,10 @@ export function AddTaskForm({ eventId, providers }: AddTaskFormProps) {
 
       {/* timing mode */}
       <div className="flex gap-2 text-[13px]">
-        {(["offset", "hard"] as const).map((m) => (
+        {(type === "appointment"
+          ? (["offset", "hard", "booked"] as const)
+          : (["offset", "hard"] as const)
+        ).map((m) => (
           <button
             key={m}
             type="button"
@@ -97,7 +106,11 @@ export function AddTaskForm({ eventId, providers }: AddTaskFormProps) {
                 : "text-muted hover:border-accent"
             }`}
           >
-            {m === "offset" ? "Days before event" : "Fixed date"}
+            {m === "offset"
+              ? "Days before event"
+              : m === "hard"
+                ? "Fixed date"
+                : "Already booked"}
           </button>
         ))}
       </div>
@@ -115,13 +128,30 @@ export function AddTaskForm({ eventId, providers }: AddTaskFormProps) {
             className="w-full rounded-md border bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
           />
         </label>
-      ) : (
+      ) : timing === "hard" ? (
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium">On this date</span>
           <input
             name="hardDate"
             type="date"
             className="w-full rounded-md border bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+        </label>
+      ) : (
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-medium">Booked for</span>
+          <input
+            type="datetime-local"
+            required
+            value={bookedSlot}
+            onChange={(e) => setBookedSlot(e.target.value)}
+            className="w-full rounded-md border bg-paper px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          {/* The server stores ISO; convert client-side where the zone is known. */}
+          <input
+            type="hidden"
+            name="scheduledAt"
+            value={bookedSlot ? fromDatetimeLocalValue(bookedSlot) : ""}
           />
         </label>
       )}

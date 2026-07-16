@@ -303,8 +303,14 @@ export interface CreateTaskInput {
 }
 
 export async function createTask(input: CreateTaskInput): Promise<Task> {
+  // "Already booked" is a first-class entry state: an appointment created
+  // with a real slot starts life as booked (reality wins from the start).
   const status: TaskStatus =
-    input.type === "appointment" ? "needs_booking" : "to_get";
+    input.type === "appointment"
+      ? input.scheduledAt
+        ? "booked"
+        : "needs_booking"
+      : "to_get";
 
   if (!db) {
     const task: Task = {
