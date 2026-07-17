@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { getProfile } from "@/lib/data";
+import { STARTER_TEMPLATES, effectiveTemplates } from "@/lib/templates";
 import {
   addProviderAction,
+  addQualifierAction,
   deleteProviderAction,
+  deleteQualifierAction,
+  removeTemplateItemAction,
   removeTimingDefaultAction,
+  saveTemplateItemAction,
   saveTimingDefaultAction,
   updateProfileAction,
 } from "@/app/actions";
@@ -23,6 +28,9 @@ export default async function ProfilePage() {
   const defaults = Object.entries(profile.timingDefaults).sort(([a], [b]) =>
     a.localeCompare(b),
   );
+  const templates = Object.entries(
+    effectiveTemplates(STARTER_TEMPLATES, profile.templates ?? {}),
+  ).sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
@@ -202,6 +210,137 @@ export default async function ProfilePage() {
           </button>
         </form>
       </section>
+
+      {/* ── Occasion templates ── */}
+      <section className="mt-6 rounded-card border bg-surface p-5">
+        <h2 className="font-display text-lg">Occasion templates</h2>
+        <p className="mt-1 text-sm text-muted">
+          Tag a new event with these and prepie seeds the runway with each
+          template&rsquo;s items — appointments and things to get.
+        </p>
+
+        <div className="mt-4 space-y-4">
+          {templates.map(([qualifier, items]) => (
+            <div key={qualifier} className="rounded-md border bg-paper p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium capitalize">{qualifier}</h3>
+                <form action={deleteQualifierAction.bind(null, qualifier)}>
+                  <button
+                    type="submit"
+                    aria-label={`Delete ${qualifier} template`}
+                    className="text-[13px] text-muted underline decoration-line underline-offset-4 hover:decoration-accent"
+                  >
+                    Delete template
+                  </button>
+                </form>
+              </div>
+
+              <ul className="mt-3 space-y-1.5">
+                {items.map((item, index) => (
+                  <li
+                    key={`${item.type}-${item.title}-${index}`}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted">
+                      {item.type === "appointment"
+                        ? "appointment"
+                        : (item.category ?? "to get")}
+                    </span>
+                    <span>{item.title}</span>
+                    <span className="text-muted">
+                      {item.offsetDays != null ? `−${item.offsetDays}d` : ""}
+                      {item.providerCategory ? ` · ${item.providerCategory}` : ""}
+                    </span>
+                    <form
+                      action={removeTemplateItemAction.bind(null, qualifier, index)}
+                      className="ml-auto"
+                    >
+                      <button
+                        type="submit"
+                        aria-label={`Remove ${item.title} from ${qualifier}`}
+                        className="text-[13px] text-muted underline decoration-line underline-offset-4 hover:decoration-accent"
+                      >
+                        Remove
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+
+              <form
+                action={saveTemplateItemAction.bind(null, qualifier)}
+                className="mt-3 flex flex-wrap items-end gap-2"
+              >
+                <TemplateItemFields />
+                <button
+                  type="submit"
+                  className="rounded-full bg-ink px-3 py-1.5 text-[13px] text-paper transition hover:bg-accent"
+                >
+                  Add item
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+
+        <form action={addQualifierAction} className="mt-5 space-y-3 rounded-md border border-dashed p-4">
+          <h3 className="text-sm font-medium">New template</h3>
+          <label className="block max-w-56">
+            <span className="mb-1.5 block text-sm font-medium">Occasion</span>
+            <input name="qualifier" required placeholder="dj gig" className={inputClass} />
+          </label>
+          <div className="flex flex-wrap items-end gap-2">
+            <TemplateItemFields />
+            <button
+              type="submit"
+              className="rounded-full bg-ink px-3 py-1.5 text-[13px] text-paper transition hover:bg-accent"
+            >
+              Add template
+            </button>
+          </div>
+          <p className="text-[13px] text-muted">
+            Starts with its first item — add more once it exists.
+          </p>
+        </form>
+      </section>
     </main>
+  );
+}
+
+// Shared inputs for a template item; used by both the per-qualifier
+// add-item form and the new-template form.
+function TemplateItemFields() {
+  return (
+    <>
+      <label className="block w-36">
+        <span className="mb-1.5 block text-[13px] font-medium">Type</span>
+        <select name="itemType" defaultValue="acquisition" className={inputClass}>
+          <option value="acquisition">Acquire</option>
+          <option value="appointment">Appointment</option>
+        </select>
+      </label>
+      <label className="block flex-1 min-w-40">
+        <span className="mb-1.5 block text-[13px] font-medium">Item</span>
+        <input name="itemTitle" required placeholder="Sunscreen" className={inputClass} />
+      </label>
+      <label className="block w-28">
+        <span className="mb-1.5 block text-[13px] font-medium">Days before</span>
+        <input name="offsetDays" type="number" min={0} placeholder="7" className={inputClass} />
+      </label>
+      <label className="block w-36">
+        <span className="mb-1.5 block text-[13px] font-medium">Category</span>
+        <select name="category" defaultValue="" className={inputClass}>
+          <option value="">—</option>
+          <option value="shopping">Shopping</option>
+          <option value="packing">Packing</option>
+          <option value="errands">Errands</option>
+          <option value="prep">Prep</option>
+        </select>
+      </label>
+      <label className="block w-36">
+        <span className="mb-1.5 block text-[13px] font-medium">Provider cat.</span>
+        <input name="providerCategory" placeholder="hair" className={inputClass} />
+      </label>
+    </>
   );
 }

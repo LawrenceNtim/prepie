@@ -13,7 +13,8 @@ import {
   updateTask,
   type CreateTaskInput,
 } from "@/lib/data";
-import type { EventType, TaskStatus, TaskType } from "@/types";
+import { STARTER_TEMPLATES, effectiveTemplates } from "@/lib/templates";
+import type { EventType, TaskStatus, TaskType, TemplateItem } from "@/types";
 
 // ── Create event (+ prefill) ────────────────────────────────────────────
 // Used directly as a <form action>. Seeds the new event with the usual prep
@@ -145,5 +146,87 @@ export async function addProviderAction(formData: FormData) {
 
 export async function deleteProviderAction(id: string) {
   await deleteProvider(id);
+  revalidatePath("/profile");
+}
+
+// ── Occasion templates ──────────────────────────────────────────────────
+// Edits are copy-on-write against the EFFECTIVE view: the first edit to a
+// starter qualifier copies its list into profile overrides, then mutates
+// the copy. Deleting a starter qualifier writes an empty-list tombstone.
+
+function parseTemplateItem(formData: FormData): TemplateItem {
+  const type = String(formData.get("itemType") ?? "acquisition") as TaskType;
+  const title = String(formData.get("itemTitle") ?? "").trim();
+  if (!title) throw new Error("Give the item a title.");
+  const offsetRaw = String(formData.get("offsetDays") ?? "").trim();
+  const offsetDays = offsetRaw ? Number(offsetRaw) : null;
+  if (offsetDays !== null && (!Number.isInteger(offsetDays) || offsetDays < 0)) {
+    throw new Error("Days before must be a non-negative whole number.");
+  }
+  const providerCategory =
+    String(formData.get("providerCategory") ?? "").trim().toLowerCase() || null;
+  const category =
+    (String(formData.get("category") ?? "").trim().toLowerCase() ||
+      null) as TemplateItem["category"];
+  return {
+    type,
+    title,
+    offsetDays,
+    providerCategory: type === "appointment" ? providerCategory : null,
+    category: type === "acquisition" ? category : null,
+    notes: null,
+  };
+}
+
+async function writeTemplateList(qualifier: string, items: TemplateItem[]) {
+  const profile = await getProfile();
+  await updateProfile({
+    templates: { ...(profile.templates ?? {}), [qualifier]: items },
+  });
+  revalidatePath("/profile");
+}
+
+export async function saveTemplateItemAction(
+  qualifier: string,
+  formData: FormData,
+) {
+  const item = parseTemplateItem(formData);
+  const profile = await getProfile();
+  const effective = effectiveTemplates(STARTER_TEMPLATES, profile.templates ?? {});
+  await writeTemplateList(qualifier, [...(effective[qualifier] ?? []), item]);
+}
+
+export async function removeTemplateItemAction(
+  qualifier: string,
+  index: number,
+) {
+  const profile = await getProfile();
+  const effective = effectiveTemplates(STARTER_TEMPLATES, profile.templates ?? {});
+  const current = effective[qualifier] ?? [];
+  if (index < 0 || index >= current.length) return; // stale index — ignore
+  await writeTemplateList(qualifier, current.filter((_, i) => i !== index));
+}
+
+// New qualifiers require their first item in the same form — the merge
+// drops empty lists (tombstones), so an empty-but-alive user qualifier
+// cannot exist.
+export async function addQualifierAction(formData: FormData) {
+  const name = String(formData.get("qualifier") ?? "").trim().toLowerCase();
+  if (!name) throw new Error("Name the occasion.");
+  const item = parseTemplateItem(formData);
+  const profile = await getProfile();
+  const effective = effectiveTemplates(STARTER_TEMPLATES, profile.templates ?? {});
+  await writeTemplateList(name, [...(effective[name] ?? []), item]);
+}
+
+export async function deleteQualifierAction(qualifier: string) {
+  const profile = await getProfile();
+  const overrides = { ...(profile.templates ?? {}) };
+  if (qualifier in STARTER_TEMPLATES) {
+    overrides[qualifier] = []; // tombstone hides the starter
+  } else {
+    delete overrides[qualifier];
+  }
+  await updateProfile({ templates: overrides });
   revalidatePath("/profile");
 }
