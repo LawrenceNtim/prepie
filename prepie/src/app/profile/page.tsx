@@ -8,6 +8,10 @@ import {
   updateProfileAction,
 } from "@/app/actions";
 
+// Data lives in the DB (or the process-local mock) — never prerender at
+// build time, where DATABASE_URL may be set and queried from the builder.
+export const dynamic = "force-dynamic";
+
 const inputClass =
   "w-full rounded-md border bg-paper px-3 py-2 text-sm outline-none focus:border-accent";
 
