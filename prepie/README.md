@@ -45,9 +45,11 @@ See [`src/lib/timing.ts`](src/lib/timing.ts) — that file is the brain.
 status lifecycle, per-task "Add to calendar" (.ics), profile memory pre-fill,
 the runway view.
 
-**Parked at P1:** occasion templates · LLM timing suggestions · Gmail import ·
-two-way calendar sync. The stack below doesn't block any of these — they're
-additive.
+**Shipped since:** occasion templates — tag an event (beach, formal, work
+trip…) and the runway seeds that template's appointments and to-gets; starter
+set of 8, editable on `/profile` (`src/lib/templates.ts`).
+**Parked at P1:** LLM timing suggestions · Gmail import · two-way calendar
+sync. The stack below doesn't block any of these — they're additive.
 
 ---
 
@@ -102,6 +104,7 @@ src/
   lib/
     timing.ts                ★ precedence rule + drift (the brain)
     data.ts                  data access seam (mock ↔ Drizzle)
+    templates.ts             occasion templates: starter set + merge + seeds
     ics.ts                   calendar generation
     mock.ts                  the Japan seed
     db/{schema,index}.ts     Drizzle schema + client

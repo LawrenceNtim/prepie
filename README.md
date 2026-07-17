@@ -45,9 +45,9 @@ See [`src/lib/timing.ts`](src/lib/timing.ts) — that file is the brain.
 status lifecycle, per-task "Add to calendar" (.ics), profile memory pre-fill,
 the runway view.
 
-**Parked at P1:** occasion templates · LLM timing suggestions · Gmail import ·
-two-way calendar sync. The stack below doesn't block any of these — they're
-additive.
+**Shipped since:** occasion templates (qualifier chips → seeded prep).
+**Parked at P1:** LLM timing suggestions · Gmail import · two-way calendar
+sync. The stack below doesn't block any of these — they're additive.
 
 ---
 
@@ -117,8 +117,13 @@ server-side Drizzle, so no anon key is exposed.
 - Task status lifecycle, add tasks, per-task `.ics` export
 - Event date editing (runway recomputes from new date)
 - Dual backend in [`prepie/src/lib/data.ts`](prepie/src/lib/data.ts) (in-memory mock ↔ Drizzle/Postgres)
+- Booked-slot datetime picker + "already booked" entry state
+- Profile page (`/profile`): sizes, timing defaults, providers
+- Occasion templates: tag an event (beach, formal, work trip…) → runway seeds
+  that template's appointments and to-gets; starter set of 8, editable on
+  `/profile` ([`prepie/src/lib/templates.ts`](prepie/src/lib/templates.ts))
 
-**Still P1:** occasion templates · LLM timing · Gmail import · two-way calendar sync · profile UI · auth
+**Still P1:** LLM timing · Gmail import · two-way calendar sync · auth
 
 ### Map of the code
 ```

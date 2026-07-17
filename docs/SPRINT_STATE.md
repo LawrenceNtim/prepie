@@ -68,11 +68,18 @@ the brain. See the root `README.md` for the full model and code map.
 
 **Built:** event list · runway timeline · create event with profile pre-fill ·
 task lifecycle · add tasks · per-task `.ics` export · event date editing ·
-dual-backend data seam · demo seed · setup/verify DB scripts.
+dual-backend data seam · demo seed · setup/verify DB scripts · site lock
+(`SITE_PASSWORD`) · booked-slot datetime picker · "already booked" entry
+state · profile page (`/profile`) · occasion templates (qualifier chips →
+seeded appointments + shopping/packing items, starter set editable on
+`/profile`).
 
-**Not built:** auth · RLS policies · profile UI · datetime picker for booked
-slots (currently defaults to noon) · occasion templates · LLM timing
-suggestions · Gmail import · two-way calendar sync.
+**Not built:** auth · RLS policies · LLM timing suggestions · Gmail import ·
+two-way calendar sync.
+
+**Schema delta pending on prod:** `profiles.templates` + `events.qualifiers`
+land with the next `db:push` — the user's pending `npm run setup:db` run
+does it. Do not deploy DB-mode until then.
 
 ## 5. Implementation plan — next sprint
 
@@ -151,6 +158,16 @@ already flows into create-event pre-fill; there's just no way to edit it.
 Occasion templates · LLM timing suggestions (`ANTHROPIC_API_KEY` slot already
 in `.env.example`) · Gmail import · two-way calendar sync. All additive; none
 blocked by the current stack.
+
+**Idea backlog (Lawrence, 2026-07-16):** both ideas **shipped in v1 form the
+same day** as the unified occasion-templates feature (qualifier chips seed
+appointments AND categorized shopping/packing/errand/prep items; starter set
+of 8 editable on `/profile`; plan:
+`docs/superpowers/plans/2026-07-16-occasion-templates.md`).
+- **Follow-up:** "apply a template to an existing event" — needs an
+  idempotent re-seed against live (possibly mutated) tasks.
+- **Follow-up:** category grouping/checklist view on the runway (categories
+  currently surface via task notes).
 
 ## 6. Process
 
