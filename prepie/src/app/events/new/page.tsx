@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { createEventAction } from "@/app/actions";
+import { getProfile } from "@/lib/data";
+import { STARTER_TEMPLATES, effectiveTemplates } from "@/lib/templates";
+
+// Data lives in the DB (or the process-local mock) — never prerender at
+// build time, where DATABASE_URL may be set and queried from the builder.
+export const dynamic = "force-dynamic";
 
 // On submit this calls createEventAction, which seeds the new event with your
-// usual prep (from profile.timingDefaults + saved providers) and drops you onto
-// the runway. The one-tap "already booked" path lives on each seeded card's
-// status control — set it to Booked and reality (a real slot) wins.
-export default function NewEventPage() {
+// usual prep (from profile.timingDefaults + saved providers) plus the items
+// from any occasion templates you tag it with. The one-tap "already booked"
+// path lives on each seeded card's status control.
+export default async function NewEventPage() {
+  const profile = await getProfile();
+  const qualifiers = Object.keys(
+    effectiveTemplates(STARTER_TEMPLATES, profile.templates ?? {}),
+  ).sort();
   return (
     <main className="mx-auto max-w-xl px-6 py-16">
       <Link
@@ -53,6 +63,31 @@ export default function NewEventPage() {
             <option value="other">Other</option>
           </select>
         </label>
+
+        <fieldset>
+          <legend className="mb-1.5 block text-sm font-medium">
+            Occasion templates
+          </legend>
+          <p className="mb-2 text-[13px] text-muted">
+            Tag the event and prepie seeds each template&rsquo;s prep. Edit
+            them on your profile.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {qualifiers.map((q) => (
+              <label key={q} className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="qualifiers"
+                  value={q}
+                  className="peer sr-only"
+                />
+                <span className="inline-block rounded-full border px-3 py-1 text-[13px] capitalize text-muted transition peer-checked:border-accent peer-checked:bg-accent-soft/40 peer-checked:text-accent">
+                  {q}
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div className="rounded-md bg-accent-soft/40 p-3 text-[13px] text-accent">
           On create, prepie pre-fills your usual prep (hair −4, nails −3,

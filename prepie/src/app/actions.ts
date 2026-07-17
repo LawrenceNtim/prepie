@@ -24,6 +24,10 @@ export async function createEventAction(formData: FormData) {
   const eventDate = String(formData.get("eventDate") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
   const type = (String(formData.get("type") ?? "other") || "other") as EventType;
+  const qualifiers = formData
+    .getAll("qualifiers")
+    .map((q) => String(q).trim().toLowerCase())
+    .filter(Boolean);
 
   if (!title || !eventDate) {
     throw new Error("An occasion and a date are required.");
@@ -34,6 +38,7 @@ export async function createEventAction(formData: FormData) {
     type,
     eventDate,
     location: location || null,
+    qualifiers,
   });
 
   revalidatePath("/");

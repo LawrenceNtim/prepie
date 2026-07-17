@@ -29,9 +29,19 @@ export default async function EventPage({
       </Link>
 
       <header className="mb-10 mt-6">
-        <span className="text-[11px] uppercase tracking-wider text-muted">
-          {event.type.replace("_", " ")}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] uppercase tracking-wider text-muted">
+            {event.type.replace("_", " ")}
+          </span>
+          {(event.qualifiers ?? []).map((q) => (
+            <span
+              key={q}
+              className="rounded-full border bg-paper px-2 py-0.5 text-[11px] capitalize text-muted"
+            >
+              {q}
+            </span>
+          ))}
+        </div>
         <h1 className="font-display text-3xl leading-tight">{event.title}</h1>
         {event.notes && (
           <p className="mt-1 text-sm text-muted">{event.notes}</p>
