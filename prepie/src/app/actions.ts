@@ -3,9 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  addProvider,
   createEventWithPrefill,
   createTask,
+  deleteProvider,
+  getProfile,
   updateEvent,
+  updateProfile,
   updateTask,
   type CreateTaskInput,
 } from "@/lib/data";
@@ -89,4 +93,57 @@ export async function updateEventDateAction(eventId: string, eventDate: string) 
   await updateEvent(eventId, { eventDate });
   revalidatePath("/");
   revalidatePath(`/events/${eventId}`);
+}
+
+// ── Profile editing ─────────────────────────────────────────────────────
+
+export async function updateProfileAction(formData: FormData) {
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  if (!displayName) throw new Error("A display name is required.");
+  await updateProfile({
+    displayName,
+    shoeSize: String(formData.get("shoeSize") ?? "").trim() || null,
+    clothingSize: String(formData.get("clothingSize") ?? "").trim() || null,
+  });
+  revalidatePath("/profile");
+}
+
+// Upserts one timing default (e.g. hair → 4 days before the event).
+export async function saveTimingDefaultAction(formData: FormData) {
+  const category = String(formData.get("category") ?? "")
+    .trim()
+    .toLowerCase();
+  const days = Number(String(formData.get("days") ?? "").trim());
+  if (!category || !Number.isInteger(days) || days < 0) {
+    throw new Error("A category and a non-negative whole number of days are required.");
+  }
+  const profile = await getProfile();
+  await updateProfile({
+    timingDefaults: { ...profile.timingDefaults, [category]: days },
+  });
+  revalidatePath("/profile");
+}
+
+export async function removeTimingDefaultAction(category: string) {
+  const profile = await getProfile();
+  const { [category]: _removed, ...rest } = profile.timingDefaults;
+  await updateProfile({ timingDefaults: rest });
+  revalidatePath("/profile");
+}
+
+export async function addProviderAction(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("A provider name is required.");
+  await addProvider({
+    name,
+    category:
+      String(formData.get("category") ?? "").trim().toLowerCase() || null,
+    location: String(formData.get("location") ?? "").trim() || null,
+  });
+  revalidatePath("/profile");
+}
+
+export async function deleteProviderAction(id: string) {
+  await deleteProvider(id);
+  revalidatePath("/profile");
 }

@@ -27,12 +27,20 @@ export default async function HomePage() {
             Calm prep for the moments that count.
           </p>
         </div>
-        <Link
-          href="/events/new"
-          className="rounded-full bg-ink px-4 py-2 text-sm text-paper transition hover:bg-accent"
-        >
-          New event
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/profile"
+            className="text-sm text-muted underline decoration-line underline-offset-4 hover:decoration-accent"
+          >
+            Profile
+          </Link>
+          <Link
+            href="/events/new"
+            className="rounded-full bg-ink px-4 py-2 text-sm text-paper transition hover:bg-accent"
+          >
+            New event
+          </Link>
+        </div>
       </header>
 
       <ul className="space-y-3">
