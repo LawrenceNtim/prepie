@@ -43,7 +43,7 @@ export const store: PrepieStore =
 // unique within the process and URL-safe — a prefix + counter + short random
 // suffix is plenty. When Drizzle lands, ids become DB-generated uuids and this
 // helper drops away.
-export function newId(prefix: "evt" | "t"): string {
+export function newId(prefix: "evt" | "t" | "p"): string {
   store.seq += 1;
   return `${prefix}-${store.seq}-${Math.random().toString(36).slice(2, 6)}`;
 }

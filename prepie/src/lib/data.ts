@@ -416,6 +416,90 @@ export async function updateEvent(
   return row ? mapEvent(row) : null;
 }
 
+// ── Profile editing ─────────────────────────────────────────────────────
+// The memory layer is finally editable. Same dual-backend contract: mock
+// mutates the pinned store, DB path updates the single ensureProfile row.
+
+export interface UpdateProfileInput {
+  displayName?: string;
+  shoeSize?: string | null;
+  clothingSize?: string | null;
+  timingDefaults?: Record<string, number>;
+}
+
+export async function updateProfile(
+  patch: UpdateProfileInput,
+): Promise<Profile> {
+  if (!db) {
+    const p = store.profile;
+    if (patch.displayName !== undefined) p.displayName = patch.displayName.trim();
+    if (patch.shoeSize !== undefined) p.shoeSize = patch.shoeSize?.trim() || null;
+    if (patch.clothingSize !== undefined)
+      p.clothingSize = patch.clothingSize?.trim() || null;
+    if (patch.timingDefaults !== undefined)
+      p.timingDefaults = patch.timingDefaults;
+    return p;
+  }
+
+  const profile = await ensureProfile();
+  const set: Partial<typeof profiles.$inferInsert> = {};
+  if (patch.displayName !== undefined) set.displayName = patch.displayName.trim();
+  if (patch.shoeSize !== undefined) set.shoeSize = patch.shoeSize?.trim() || null;
+  if (patch.clothingSize !== undefined)
+    set.clothingSize = patch.clothingSize?.trim() || null;
+  if (patch.timingDefaults !== undefined)
+    set.timingDefaults = patch.timingDefaults;
+
+  await db.update(profiles).set(set).where(eq(profiles.id, profile.id));
+  return getProfile();
+}
+
+export interface CreateProviderInput {
+  name: string;
+  category?: string | null;
+  location?: string | null;
+  notes?: string | null;
+}
+
+export async function addProvider(
+  input: CreateProviderInput,
+): Promise<Provider> {
+  const values = {
+    name: input.name.trim(),
+    category: input.category?.trim() || null,
+    location: input.location?.trim() || null,
+    notes: input.notes?.trim() || null,
+  };
+
+  if (!db) {
+    const provider: Provider = { id: newId("p"), ...values };
+    store.profile.providers.push(provider);
+    return provider;
+  }
+
+  const profile = await ensureProfile();
+  const [row] = await db
+    .insert(providers)
+    .values({ profileId: profile.id, ...values })
+    .returning();
+  return mapProvider(row);
+}
+
+export async function deleteProvider(id: string): Promise<void> {
+  if (!db) {
+    store.profile.providers = store.profile.providers.filter(
+      (p) => p.id !== id,
+    );
+    // Mirror the DB's ON DELETE SET NULL on tasks.provider_id.
+    for (const t of store.tasks) {
+      if (t.providerId === id) t.providerId = null;
+    }
+    return;
+  }
+  await db.delete(providers).where(eq(providers.id, id));
+}
+
+
 // ── Pre-fill ────────────────────────────────────────────────────────────
 // Turn profile memory into a seeded prep list. Each timingDefaults entry
 // (e.g. hair: 4) becomes an unbooked appointment at that offset, attached to
