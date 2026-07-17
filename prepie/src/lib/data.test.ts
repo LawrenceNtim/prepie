@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { addProvider, createEvent, createTask, deleteProvider, getProfile, updateProfile } from "./data";
+import {
+  addProvider,
+  createEvent,
+  createEventWithPrefill,
+  createTask,
+  deleteProvider,
+  getProfile,
+  updateProfile,
+} from "./data";
 
 // These run against the in-memory mock backend (no DATABASE_URL in the test
 // env, so `db` is null). The globalThis-pinned store is shared across tests
@@ -85,5 +93,53 @@ describe("profile editing", () => {
     expect((await getProfile()).providers.map((p) => p.id)).not.toContain(
       provider.id,
     );
+  });
+});
+
+describe("occasion qualifiers", () => {
+  it("stores normalized qualifiers and seeds template items after prefill", async () => {
+    const { event, tasks } = await createEventWithPrefill({
+      title: "Cabo",
+      type: "vacation",
+      eventDate: "2026-09-01",
+      qualifiers: [" Beach ", "beach"],
+    });
+    expect(event.qualifiers).toEqual(["beach"]);
+
+    const titles = tasks.map((t) => t.title);
+    // profile prefill still present (mock profile: hair/nails/brows)
+    expect(titles).toContain("Hair");
+    // beach template acquisitions arrive
+    expect(titles).toContain("Sunscreen");
+    // beach's Pedicure appointment is SKIPPED: providerCategory "nails" is
+    // already covered by the profile's timingDefaults
+    expect(titles).not.toContain("Pedicure");
+    // no duplicate normalized titles
+    const norm = titles.map((t) => t.trim().toLowerCase());
+    expect(new Set(norm).size).toBe(norm.length);
+    // category label lands in notes for v1
+    expect(tasks.find((t) => t.title === "Sunscreen")?.notes).toBe("shopping");
+  });
+
+  it("tombstoned template seeds nothing beyond prefill", async () => {
+    await updateProfile({ templates: { beach: [] } });
+    const { tasks } = await createEventWithPrefill({
+      title: "Cabo 2",
+      type: "vacation",
+      eventDate: "2026-09-02",
+      qualifiers: ["beach"],
+    });
+    expect(tasks.map((t) => t.title)).not.toContain("Sunscreen");
+    // clean up the override so other tests see the starter set
+    await updateProfile({ templates: {} });
+  });
+
+  it("events created without qualifiers get an empty list", async () => {
+    const event = await createEvent({
+      title: "Plain",
+      type: "other",
+      eventDate: "2026-09-03",
+    });
+    expect(event.qualifiers).toEqual([]);
   });
 });

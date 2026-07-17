@@ -9,6 +9,7 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import type { TemplateItem } from "@/types";
 
 // ── Enums ──────────────────────────────────────────────────────────────
 export const eventTypeEnum = pgEnum("event_type", [
@@ -41,6 +42,12 @@ export const profiles = pgTable("profiles", {
     .$type<Record<string, number>>()
     .default({})
     .notNull(),
+  // User overrides for occasion templates; starter set merges in at read
+  // time (lib/templates.ts). Empty list = tombstone hiding a starter key.
+  templates: jsonb("templates")
+    .$type<Record<string, TemplateItem[]>>()
+    .default({})
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -64,6 +71,7 @@ export const events = pgTable("events", {
   type: eventTypeEnum("type").default("other").notNull(),
   eventDate: date("event_date").notNull(),
   location: text("location"),
+  qualifiers: jsonb("qualifiers").$type<string[]>().default([]).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

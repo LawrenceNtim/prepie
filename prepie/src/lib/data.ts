@@ -11,6 +11,12 @@ import { buildJapanDemoSeed } from "./demo-seed";
 import { db } from "./db";
 import { events, profiles, providers, tasks } from "./db/schema";
 import { asc, count, eq } from "drizzle-orm";
+import {
+  STARTER_TEMPLATES,
+  buildTemplateTasks,
+  effectiveTemplates,
+} from "./templates";
+import type { TemplateMap } from "@/types";
 
 // ── Data access layer ───────────────────────────────────────────────────
 // One seam, two backends. With no DATABASE_URL set, `db` is null and every
@@ -52,6 +58,7 @@ function mapProfile(r: ProfileRow): Profile {
     clothingSize: r.clothingSize,
     providers: r.providers.map(mapProvider),
     timingDefaults: r.timingDefaults,
+    templates: r.templates,
   };
 }
 
@@ -62,6 +69,7 @@ function mapEvent(r: EventRow): PrepEvent {
     type: r.type,
     eventDate: r.eventDate,
     location: r.location,
+    qualifiers: r.qualifiers,
     notes: r.notes,
   };
 }
@@ -100,6 +108,7 @@ async function ensureProfile(): Promise<Profile> {
       shoeSize: seed.shoeSize ?? null,
       clothingSize: seed.clothingSize ?? null,
       timingDefaults: seed.timingDefaults,
+      templates: seed.templates ?? {},
     })
     .returning();
 
@@ -218,10 +227,21 @@ export interface CreateEventInput {
   type: PrepEvent["type"];
   eventDate: string; // "YYYY-MM-DD"
   location?: string | null;
+  qualifiers?: string[];
   notes?: string | null;
 }
 
+function normalizeQualifiers(qualifiers: string[] | undefined): string[] {
+  return [
+    ...new Set(
+      (qualifiers ?? []).map((q) => q.trim().toLowerCase()).filter(Boolean),
+    ),
+  ];
+}
+
 export async function createEvent(input: CreateEventInput): Promise<PrepEvent> {
+  const qualifiers = normalizeQualifiers(input.qualifiers);
+
   if (!db) {
     const event: PrepEvent = {
       id: newId("evt"),
@@ -229,6 +249,7 @@ export async function createEvent(input: CreateEventInput): Promise<PrepEvent> {
       type: input.type,
       eventDate: input.eventDate,
       location: input.location?.trim() || null,
+      qualifiers,
       notes: input.notes?.trim() || null,
     };
     store.events.push(event);
@@ -244,6 +265,7 @@ export async function createEvent(input: CreateEventInput): Promise<PrepEvent> {
       type: input.type,
       eventDate: input.eventDate,
       location: input.location?.trim() || null,
+      qualifiers,
       notes: input.notes?.trim() || null,
     })
     .returning();
@@ -257,7 +279,19 @@ export async function createEventWithPrefill(
 ): Promise<{ event: PrepEvent; tasks: Task[] }> {
   if (!db) {
     const event = await createEvent(input);
-    const seeded = buildPrefillTasks(store.profile).map((seed) => ({
+    const prefillSeeds = buildPrefillTasks(store.profile);
+    const templateSeeds = buildTemplateTasks(
+      event.qualifiers ?? [],
+      effectiveTemplates(STARTER_TEMPLATES, store.profile.templates ?? {}),
+      store.profile,
+      Object.keys(store.profile.timingDefaults).map((category) => ({
+        type: "appointment" as const,
+        title: labelFor(category),
+        providerCategory: category,
+      })),
+    );
+    const seeds = [...prefillSeeds, ...templateSeeds];
+    const seeded = seeds.map((seed) => ({
       id: newId("t"),
       eventId: event.id,
       ...seed,
@@ -267,6 +301,7 @@ export async function createEventWithPrefill(
   }
 
   const profile = await ensureProfile();
+  const qualifiers = normalizeQualifiers(input.qualifiers);
   const [eventRow] = await db
     .insert(events)
     .values({
@@ -275,11 +310,23 @@ export async function createEventWithPrefill(
       type: input.type,
       eventDate: input.eventDate,
       location: input.location?.trim() || null,
+      qualifiers,
       notes: input.notes?.trim() || null,
     })
     .returning();
 
-  const seeds = buildPrefillTasks(profile);
+  const prefillSeeds = buildPrefillTasks(profile);
+  const templateSeeds = buildTemplateTasks(
+    qualifiers,
+    effectiveTemplates(STARTER_TEMPLATES, profile.templates ?? {}),
+    profile,
+    Object.keys(profile.timingDefaults).map((category) => ({
+      type: "appointment" as const,
+      title: labelFor(category),
+      providerCategory: category,
+    })),
+  );
+  const seeds = [...prefillSeeds, ...templateSeeds];
   const taskRows = seeds.length
     ? await db
         .insert(tasks)
@@ -425,6 +472,7 @@ export interface UpdateProfileInput {
   shoeSize?: string | null;
   clothingSize?: string | null;
   timingDefaults?: Record<string, number>;
+  templates?: TemplateMap;
 }
 
 export async function updateProfile(
@@ -438,6 +486,7 @@ export async function updateProfile(
       p.clothingSize = patch.clothingSize?.trim() || null;
     if (patch.timingDefaults !== undefined)
       p.timingDefaults = patch.timingDefaults;
+    if (patch.templates !== undefined) p.templates = patch.templates;
     return p;
   }
 
@@ -449,6 +498,7 @@ export async function updateProfile(
     set.clothingSize = patch.clothingSize?.trim() || null;
   if (patch.timingDefaults !== undefined)
     set.timingDefaults = patch.timingDefaults;
+  if (patch.templates !== undefined) set.templates = patch.templates;
 
   await db.update(profiles).set(set).where(eq(profiles.id, profile.id));
   return getProfile();
