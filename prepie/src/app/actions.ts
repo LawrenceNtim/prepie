@@ -13,7 +13,11 @@ import {
   updateTask,
   type CreateTaskInput,
 } from "@/lib/data";
-import { STARTER_TEMPLATES, effectiveTemplates } from "@/lib/templates";
+import {
+  STARTER_TEMPLATES,
+  effectiveTemplates,
+  normalizeTitle,
+} from "@/lib/templates";
 import type { EventType, TaskStatus, TaskType, TemplateItem } from "@/types";
 
 // ── Create event (+ prefill) ────────────────────────────────────────────
@@ -185,9 +189,15 @@ function parseTemplateItem(formData: FormData): TemplateItem {
 
 async function writeTemplateList(qualifier: string, items: TemplateItem[]) {
   const profile = await getProfile();
-  await updateProfile({
-    templates: { ...(profile.templates ?? {}), [qualifier]: items },
-  });
+  const overrides = { ...(profile.templates ?? {}) };
+  if (items.length === 0 && !(qualifier in STARTER_TEMPLATES)) {
+    // A user-created qualifier with no items is gone, not tombstoned —
+    // only starter keys need the empty-list marker to stay hidden.
+    delete overrides[qualifier];
+  } else {
+    overrides[qualifier] = items;
+  }
+  await updateProfile({ templates: overrides });
   revalidatePath("/profile");
 }
 
@@ -216,7 +226,10 @@ export async function removeTemplateItemAction(
 // drops empty lists (tombstones), so an empty-but-alive user qualifier
 // cannot exist.
 export async function addQualifierAction(formData: FormData) {
-  const name = String(formData.get("qualifier") ?? "").trim().toLowerCase();
+  // Same normalization buildTemplateTasks uses for lookup (trim, lowercase,
+  // collapse whitespace) — a key that differs only in spacing would render
+  // a chip that silently seeds nothing.
+  const name = normalizeTitle(String(formData.get("qualifier") ?? ""));
   if (!name) throw new Error("Name the occasion.");
   const item = parseTemplateItem(formData);
   const profile = await getProfile();

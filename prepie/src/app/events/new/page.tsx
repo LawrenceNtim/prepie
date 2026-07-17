@@ -81,7 +81,7 @@ export default async function NewEventPage() {
                   value={q}
                   className="peer sr-only"
                 />
-                <span className="inline-block rounded-full border px-3 py-1 text-[13px] capitalize text-muted transition peer-checked:border-accent peer-checked:bg-accent-soft/40 peer-checked:text-accent">
+                <span className="inline-block rounded-full border px-3 py-1 text-[13px] capitalize text-muted transition peer-checked:border-accent peer-checked:bg-accent-soft/40 peer-checked:text-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent/50">
                   {q}
                 </span>
               </label>
