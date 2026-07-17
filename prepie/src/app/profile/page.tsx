@@ -107,6 +107,7 @@ export default async function ProfilePage() {
               <form action={removeTimingDefaultAction.bind(null, category)}>
                 <button
                   type="submit"
+                  aria-label={`Remove ${category}`}
                   className="text-[13px] text-muted underline decoration-line underline-offset-4 hover:decoration-accent"
                 >
                   Remove
@@ -166,6 +167,7 @@ export default async function ProfilePage() {
               <form action={deleteProviderAction.bind(null, p.id)}>
                 <button
                   type="submit"
+                  aria-label={`Remove ${p.name}`}
                   className="text-[13px] text-muted underline decoration-line underline-offset-4 hover:decoration-accent"
                 >
                   Remove

@@ -499,7 +499,6 @@ export async function deleteProvider(id: string): Promise<void> {
   await db.delete(providers).where(eq(providers.id, id));
 }
 
-
 // ── Pre-fill ────────────────────────────────────────────────────────────
 // Turn profile memory into a seeded prep list. Each timingDefaults entry
 // (e.g. hair: 4) becomes an unbooked appointment at that offset, attached to
