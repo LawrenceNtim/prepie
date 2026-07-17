@@ -103,9 +103,11 @@ npm run setup:db -- '<fresh-uri-from-supabase-connect>'
 
 3. Schema is already on project **Prepi** (`beznhteumkduzxpqyfci`). `db:push` is idempotent.
 
-**Note:** Auth is not wired yet — all visitors share one profile. Fine for a trusted test drive; add Supabase magic-link auth before wider sharing.
-
-**Security (P1):** Tables currently have RLS disabled. Safe for a private demo using server-side Drizzle only; enable RLS + policies before exposing a Supabase anon client.
+**Single-user mode:** prepie currently serves one person. The deployed URL is
+locked with HTTP Basic Auth — set `SITE_PASSWORD` on Vercel (`vercel env add
+SITE_PASSWORD production`); unset means the lock is off (local dev). Auth +
+RLS are deferred until there's a second user; all database access is
+server-side Drizzle, so no anon key is exposed.
 
 ---
 

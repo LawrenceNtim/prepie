@@ -15,8 +15,12 @@ Japan-trip mock when `DATABASE_URL` is absent, and on Drizzle → Supabase
 Postgres when it is set. The Supabase schema is applied and production has a
 `DATABASE_URL`, but the database is still **empty (0 rows in all four
 tables)** and **RLS is disabled** — the app is demo-safe for a trusted
-audience only. The next sprint closes the loop on the database cutover, then
-takes on auth + RLS as one unit.
+audience only.
+
+**Pivot (2026-07-16): Prepie is intentionally single-user for now.** Auth +
+RLS (§5.2 below) are deferred until there is a second user; privacy comes
+from an HTTP Basic Auth site lock (`SITE_PASSWORD`) instead. The active plan
+is `docs/superpowers/plans/2026-07-16-prepie-single-user-pivot.md`.
 
 ## 2. State verified on 2026-07-16
 
@@ -89,7 +93,17 @@ Ordered by dependency and risk. Each item has a definition of done (DoD).
 **DoD:** production and local both run DB mode; demo seed present; one
 mutation verified in Supabase.
 
+### 5.1b Single-user site lock *(replaces §5.2 for now)*
+
+HTTP Basic Auth middleware gated by `SITE_PASSWORD` (unset = off). One env
+var on Vercel; no accounts, no sessions. **DoD:** deployed URL returns 401
+without credentials, 200 with; local dev unaffected.
+
 ### 5.2 Auth + RLS *(the sprint's main course — ship as one unit)*
+
+> **DEFERRED (single-user pivot, 2026-07-16):** parked until a second user
+> exists. The site lock above covers privacy in the meantime. Everything in
+> this section remains the plan of record for multi-user, unchanged.
 
 RLS is currently **disabled on all four tables** (critical Supabase advisory).
 This is tolerable only while the sole DB client is the server-side
@@ -167,7 +181,7 @@ migrations.
 
 | Risk | Mitigation |
 |---|---|
-| RLS disabled + anon key exposure | §5.2 lands before any client-side Supabase usage or wider sharing |
-| Single shared profile on prod | Share the live URL only with trusted testers until §5.2 |
+| RLS disabled + anon key exposure | No anon key exists anywhere in the app; all DB access is server-side Drizzle. Revisit RLS only when auth lands (multi-user). |
+| Public URL, single shared profile | `SITE_PASSWORD` Basic Auth lock (shipped this sprint). |
 | Demo seed may double-fire on races | Acceptable at demo scale; revisit with auth (seed becomes per-user onboarding) |
 | Supabase password rotation breaks prod | Re-run `setup:db` with the fresh URI (documented in README) |
